@@ -111,7 +111,7 @@
 //    }
 //}
 
-
+import Photos
 import SwiftUI
 import CoreImage
 import CoreImage.CIFilterBuiltins
@@ -124,6 +124,11 @@ struct Instafilter: View {
     @State private var showingImagePicker = false
     @State private var currentFilter: CIFilter = CIFilter.sepiaTone()
     @State private var showingFilterSheet = false
+    //---radius
+    @State private var filterRadius = 0.5
+    @State private var filterScale = 0.5
+    @State private var showPrivacyAlert = false
+    //----end radius data
     let context = CIContext()
     var body: some View {
         
@@ -151,13 +156,39 @@ struct Instafilter: View {
             }
             
             HStack {
+                            Text("radius")
+                            Slider(value: $filterRadius)
+                                .onChange(of: filterRadius) { _ in
+                                    applyProcessing()
+                                }
+                        }
+            HStack {
+                            Text("scale")
+                            Slider(value: $filterScale)
+                                .onChange(of: filterScale) { _ in
+                                    applyProcessing()
+                                }
+                        }
+            
+            
+            
+            
+            
+            HStack {
                 Button("Change Fiilter") {
                     showingFilterSheet = true
                 }
                 
                 
                 Spacer()
-                Button("Save", action: save)            }
+                Button("Save", action: save)
+                    .disabled(inputImage == nil)
+                
+            }
+            .alert("Privacy Access Alert, Change Settings of App to allow Image Save Process", isPresented: $showPrivacyAlert) {
+                Button("OK", role: .cancel) { }
+              
+            }
         }
         .padding([.horizontal, .bottom])
         .navigationTitle("Instafilter")
@@ -185,16 +216,17 @@ struct Instafilter: View {
         guard let processedImage = processedImage else { return }
         
         let imageSaver = ImageSaver()
-        
      
-
         imageSaver.successHandler = {
             print("Success!")
         }
 
         imageSaver.errorHandler = {
+            showPrivacyAlert = true
             print("Oops: \($0.localizedDescription)")
         }
+        
+       
         
         
         imageSaver.writeToPhotoAlbum(image: processedImage)
@@ -213,8 +245,12 @@ struct Instafilter: View {
         let inputKeys = currentFilter.inputKeys
 
         if inputKeys.contains(kCIInputIntensityKey) { currentFilter.setValue(filterIntensity, forKey: kCIInputIntensityKey) }
-        if inputKeys.contains(kCIInputRadiusKey) { currentFilter.setValue(filterIntensity * 200, forKey: kCIInputRadiusKey) }
-        if inputKeys.contains(kCIInputScaleKey) { currentFilter.setValue(filterIntensity * 10, forKey: kCIInputScaleKey) }
+        if inputKeys.contains(kCIInputRadiusKey) { currentFilter.setValue(filterRadius * 200, forKey: kCIInputRadiusKey) }
+        if inputKeys.contains(kCIInputScaleKey) { currentFilter.setValue(filterScale * 10, forKey: kCIInputScaleKey) }
+        
+        //----
+      
+        //----
         guard let outputImage = currentFilter.outputImage else { return }
         
         if let cgimg = context.createCGImage(outputImage, from: outputImage.extent) {
